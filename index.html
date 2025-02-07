@@ -153,6 +153,42 @@
       color: #0066cc;
       font-size: 14px;
     }
+
+    @media (max-width: 768px) {
+      #main {
+        flex-direction: column; /* stack everything */
+        height: auto; /* no fixed height constraints */
+        overflow: visible; /* let content grow */
+      }
+
+      /* Let them become full width in stacked layout */
+      #jsonContainer {
+        flex: 0 0 auto;
+        width: 100%;
+        margin-bottom: 20px;
+        border-right: none;
+        overflow-y: visible;
+      }
+
+      #textareaWrapper {
+        flex: 0 0 auto;
+        height: auto;
+        margin-bottom: 8px;
+      }
+
+      #explanationPanel {
+        flex: 0 0 auto;
+        height: auto;
+        overflow-y: visible;
+      }
+
+      #tableContainer {
+        flex: 0 0 auto;
+        width: 100%;
+        overflow-y: visible;
+        margin-bottom: 20px;
+      }
+    }
   </style>
 </head>
 
@@ -693,6 +729,7 @@
   const errorMsg = document.getElementById("errorMsg");
   const payloadTbody = document.getElementById("payloadTbody");
   const explanationText = document.getElementById("explanationText");
+  const explanationPanel = document.getElementById("explanationPanel");
 
   /**
    * parsePayload()
@@ -774,6 +811,8 @@
       const explanation = propertyExplanations[keyName]?.explanation ||
         "No explanation available for this property.";
       explanationText.textContent = explanation;
+
+      explanationPanel.scrollIntoView({ behavior: "smooth" });
     });
     tdKey.appendChild(infoIcon);
 
@@ -825,6 +864,8 @@
           propertyExplanations[fullKey]?.explanation ||
           `No explanation available for "${fullKey}".`;
         explanationText.textContent = explanation;
+
+        explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
 
@@ -910,6 +951,8 @@
         } else {
           explanationText.textContent = `No explanation available for “${displayName}” (gtagKey: ${gtagKey}).`;
         }
+
+        explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
 
@@ -932,6 +975,8 @@
       infoIcon.textContent = "ℹ️";
       infoIcon.addEventListener("click", () => {
         explanationText.textContent = `Custom property "${key}" with value "${value}".`;
+
+        explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
 
