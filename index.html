@@ -7,7 +7,7 @@
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%; /* Let the body span entire browser height */
+      height: 100%; /* Let the body span the entire browser height */
       font-family: sans-serif;
       box-sizing: border-box;
     }
@@ -16,93 +16,169 @@
       box-sizing: inherit;
     }
 
-    /* A flex column wrapper that fills the viewport */
+    /* Page wrapper to allow full height flex */
     #pageWrapper {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
 
-    /* Header area (title, etc.) */
-    #header {
-      flex: 0 0 auto;
-      padding: 8px;
-    }
-
-    /* Main content area: split left (json input) and right (table) with flex row */
+    /* Main area: two columns (left JSON and explanation, right table) */
     #main {
       flex: 1 1 auto;
       display: flex;
-      overflow: hidden; /* Prevent the entire page from scrolling */
+      overflow: hidden; /* Keep everything within viewport, let children scroll */
     }
 
-    /* Left: JSON input area */
+    /* Left side container (textarea + explanation) */
     #jsonContainer {
       flex: 0 0 30%;
+      display: flex;
+      flex-direction: column; /* stack textarea + explanation vertically */
       border-right: 1px solid #ccc;
       padding: 8px;
-      overflow-y: auto; /* Only this panel scrolls if content is too long */
+      overflow-y: hidden; /* we handle scroll individually for child elements */
+      background: #fefefe;
     }
 
-    /* Right: table container */
-    #tableContainer {
-      flex: 1; /* fill remaining width */
+    /* The top 80%: text area wrapper */
+    #textareaWrapper {
+      flex: 0 0 80%;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 8px;
+    }
+
+    #jsonInput {
+      flex: 1 1 auto;
+      width: 100%;
+      resize: none; /* no manual resizing */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Light blue button styling */
+    #parseBtn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #85c5f9;
+      cursor: pointer;
+      background: #ebf5ff;
+      color: #0366d6;
+    }
+
+    #parseBtn:hover {
+      background: #dceeff;
+    }
+
+    #errorMsg {
+      color: red;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    /* The bottom 20%: explanation area inside left container */
+    #explanationPanel {
+      flex: 0 0 20%;
+      border-top: 1px solid #ccc;
       padding: 8px;
-      overflow-y: auto; /* only the table area scrolls here */
+      overflow-y: auto;
+      background: #f9f9f9;
     }
 
+    #explanationPanel h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+
+    #explanationText {
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    /* Right side: table container */
+    #tableContainer {
+      flex: 1; /* fill remaining space */
+      padding: 8px;
+      overflow-y: auto;
+      background: #fff;
+    }
+
+    #tableContainer h2 {
+      margin: 0 0 8px;
+    }
+
+    /* Table styling */
     table {
       width: 100%;
       border-collapse: collapse;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    thead tr {
+      background: #f2f2f2;
     }
 
     th, td {
       text-align: left;
-      border: 1px solid #ccc;
-      padding: 6px;
+      border-bottom: 1px solid #ddd;
+      padding: 8px;
       vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: #fafafa;
+    }
+
+    /* We’ll alternate product backgrounds using a custom class */
+    .product-bg-0 td {
+      background: #fafafa; /* Light gray for product #1, #3, #5... */
+    }
+
+    .product-bg-1 td {
+      background: #f0f0f0; /* Slightly darker gray for product #2, #4, #6... */
     }
 
     .info-icon {
       cursor: pointer;
       margin-left: 8px;
       color: #0066cc;
-    }
-
-    /* Bottom explanation panel */
-    #explanationArea {
-      flex: 0 0 auto;
-      border-top: 1px solid #ccc;
-      padding: 12px;
-      min-height: 80px;
-      overflow-y: auto; /* If explanation text is large, scroll within this area */
-    }
-
-    #errorMsg {
-      color: red;
-      margin-top: 8px;
+      font-size: 14px;
     }
   </style>
 </head>
+
 <body>
 <div id="pageWrapper">
-  <div id="header">
-    <h1>Simple GTag Payload Viewer</h1>
-  </div>
-
+  <!-- Main content: 2-column layout -->
   <div id="main">
-    <!-- Left side: JSON input -->
+    <!-- Left column -->
     <div id="jsonContainer">
-      <h2>Paste GTag Payload JSON</h2>
-      <textarea id="jsonInput"
-                placeholder="Paste your GTagPayload JSON here..."
-                style="width: 100%; height: 300px;"></textarea>
-      <br />
-      <button id="parseBtn">Parse JSON</button>
-      <div id="errorMsg"></div>
+      <div id="textareaWrapper">
+        <h2>Paste GTag Payload JSON</h2>
+        <textarea
+          id="jsonInput"
+          placeholder="Paste your GTagPayload JSON here..."></textarea>
+        <button id="parseBtn">Parse JSON</button>
+        <div id="errorMsg"></div>
+      </div>
+
+      <!-- Explanation panel (bottom 20%) -->
+      <div id="explanationPanel">
+        <h3>Selected Property Explanation</h3>
+        <div id="explanationText">No property selected yet.</div>
+      </div>
     </div>
 
-    <!-- Right side: table -->
+    <!-- Right column -->
     <div id="tableContainer">
       <h2>Parsed GTag Payload</h2>
       <table>
@@ -116,15 +192,29 @@
       </table>
     </div>
   </div>
-
-  <!-- Bottom area: explanation panel -->
-  <div id="explanationArea">
-    <h3>Selected Property Explanation</h3>
-    <div id="explanationText">No property selected yet.</div>
-  </div>
 </div>
 
 <script>
+  const productParameters = [
+    { name: "Item ID", type: "string", gtagKey: "id" },
+    { name: "Item Name", type: "string", gtagKey: "nm" },
+    { name: "Item Brand", type: "string", gtagKey: "br" },
+    { name: "Item Category", type: "string", gtagKey: "ca" },
+    { name: "Item Category2", type: "string", gtagKey: "c2" },
+    { name: "Item Category3", type: "string", gtagKey: "c3" },
+    { name: "Item Category4", type: "string", gtagKey: "c4" },
+    { name: "Item Category5", type: "string", gtagKey: "c5" },
+    { name: "Item Variant", type: "string", gtagKey: "va" },
+    { name: "Price", type: "number", gtagKey: "pr" },
+    { name: "Quantity", type: "number", gtagKey: "qt" },
+    { name: "Coupon", type: "string", gtagKey: "cp" },
+    { name: "Item List Name", type: "string", gtagKey: "ln" },
+    { name: "Index", type: "number", gtagKey: "lp" },
+    { name: "Item List ID", type: "string", gtagKey: "li" },
+    { name: "Discount", type: "number", gtagKey: "ds" },
+    { name: "Affiliation", type: "string", gtagKey: "af" }
+  ];
+
   // Basic dictionary with display names & explanations. Extend as needed.
   // Key = property from GTagPayload. displayName is how it appears in the table,
   // explanation is shown in the bottom area when you click the info icon.
@@ -524,16 +614,93 @@
         "A Google Place ID for location-based hits, or similar external location identifier."
     }
   };
+  // For standard product param tooltips, you could add something like:
+  const productParamExplanations = {
+    id: {
+      displayName: "item_id",
+      explanation: "ID of the item (e.g., SKU)."
+    },
+    nm: {
+      displayName: "item_name",
+      explanation: "Name of the item."
+    },
+    br: {
+      displayName: "item_brand",
+      explanation: "Brand or manufacturer of the item."
+    },
+    ca: {
+      displayName: "item_category",
+      explanation: "Primary category or collection name of the item."
+    },
+    c2: {
+      displayName: "item_category2",
+      explanation: "Second-level category of the item."
+    },
+    c3: {
+      displayName: "item_category3",
+      explanation: "Third-level category of the item."
+    },
+    c4: {
+      displayName: "item_category4",
+      explanation: "Fourth-level category of the item."
+    },
+    c5: {
+      displayName: "item_category5",
+      explanation: "Fifth-level category of the item."
+    },
+    va: {
+      displayName: "item_variant",
+      explanation: "Variant or sub-type of the item."
+    },
+    pr: {
+      displayName: "price",
+      explanation: "Price per item."
+    },
+    qt: {
+      displayName: "quantity",
+      explanation: "Quantity purchased or added to cart."
+    },
+    cp: {
+      displayName: "coupon",
+      explanation: "Coupon or promo code applied to this item."
+    },
+    ln: {
+      displayName: "item_list_name",
+      explanation: "Name of the item list in which the item was presented."
+    },
+    lp: {
+      displayName: "index",
+      explanation: "Index (position) of the item in the list."
+    },
+    li: {
+      displayName: "item_list_id",
+      explanation: "ID of the item list in which the item was presented."
+    },
+    ds: {
+      displayName: "discount",
+      explanation: "Discount applied to this item."
+    },
+    af: {
+      displayName: "affiliation",
+      explanation: "Affiliation or store name for the item."
+    }
+  };
 
 
+  // HTML elements
   const parseBtn = document.getElementById("parseBtn");
   const jsonInput = document.getElementById("jsonInput");
   const errorMsg = document.getElementById("errorMsg");
   const payloadTbody = document.getElementById("payloadTbody");
   const explanationText = document.getElementById("explanationText");
 
-  parseBtn.addEventListener("click", () => {
-    // Clear any existing errors or table data
+  /**
+   * parsePayload()
+   * Attempts to parse the JSON in the textarea, build the table, etc.
+   * If parse fails, show an error message. If success, update localStorage.
+   */
+  function parsePayload() {
+    // Clear old table/error
     errorMsg.textContent = "";
     payloadTbody.innerHTML = "";
     explanationText.textContent = "No property selected yet.";
@@ -546,37 +713,254 @@
       return;
     }
 
-    // Build the table rows for each top-level key
-    Object.keys(parsed).forEach((key) => {
-      const value = parsed[key];
+    // If valid, save to localStorage
+    localStorage.setItem("gtagPayload", jsonInput.value);
+
+    // Organize keys into groups
+    const normalProps = [];
+    const epStringProps = [];
+    const epNumberProps = [];
+    const upStringProps = [];
+    const upNumberProps = [];
+    const productKeys = [];
+
+    const sortedKeys = Object.keys(parsed).sort();
+    sortedKeys.forEach((key) => {
+      if (key.startsWith("ep.")) {
+        epStringProps.push(key);
+      } else if (key.startsWith("epn.")) {
+        epNumberProps.push(key);
+      } else if (key.startsWith("up.")) {
+        upStringProps.push(key);
+      } else if (key.startsWith("upn.")) {
+        upNumberProps.push(key);
+      } else if (/^pr\d+$/.test(key)) {
+        productKeys.push(key);
+      } else {
+        normalProps.push(key);
+      }
+    });
+
+    // Build the table
+    normalProps.forEach(addNormalRow);
+    addGroupPropsRow("Event Properties (String)", epStringProps, 3);
+    addGroupPropsRow("Event Properties (Numeric)", epNumberProps, 4);
+    addGroupPropsRow("User Properties (String)", upStringProps, 3);
+    addGroupPropsRow("User Properties (Numeric)", upNumberProps, 4);
+
+    if (productKeys.length) {
+      addGroupTitleRow("Products", "product-bg-1");
+      productKeys.forEach((prKey, i) => {
+        addGroupTitleRow(`Product #${i + 1}`, `product-bg-${i % 2}`);
+        buildProductRows(prKey, parsed[prKey], i);
+      });
+    }
+  }
+
+  /** Renders a single normal row for top-level or non-grouped props */
+  function addNormalRow(keyName) {
+    const parsed = JSON.parse(jsonInput.value);
+    const value = parsed[keyName];
+    const tr = document.createElement("tr");
+
+    const tdKey = document.createElement("td");
+    tdKey.textContent =
+      propertyExplanations[keyName]?.displayName || keyName;
+
+    const infoIcon = document.createElement("span");
+    infoIcon.classList.add("info-icon");
+    infoIcon.textContent = "ℹ️";
+    infoIcon.addEventListener("click", () => {
+      const explanation = propertyExplanations[keyName]?.explanation ||
+        "No explanation available for this property.";
+      explanationText.textContent = explanation;
+    });
+    tdKey.appendChild(infoIcon);
+
+    const tdValue = document.createElement("td");
+    tdValue.textContent =
+      typeof value === "object" ? JSON.stringify(value, null, 2) : value;
+
+    tr.appendChild(tdKey);
+    tr.appendChild(tdValue);
+    payloadTbody.appendChild(tr);
+  }
+
+  /** Adds a title row spanning both columns */
+  function addGroupTitleRow(title, cls) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    if (cls) tr.classList.add(cls);
+    td.colSpan = 2;
+    td.style.fontWeight = "bold";
+    td.textContent = title;
+    tr.appendChild(td);
+    payloadTbody.appendChild(tr);
+  }
+
+  /** For ep.* or up.* groups: Insert a title row, then each property row. */
+  function addGroupPropsRow(title, keys, prefixLength) {
+    if (!keys.length) return;
+    addGroupTitleRow(title);
+
+    const parsed = JSON.parse(jsonInput.value);
+
+    keys.forEach((fullKey) => {
+      const subKey = fullKey.substring(prefixLength);
+      const val = parsed[fullKey];
+      const valString =
+        typeof val === "object" ? JSON.stringify(val, null, 2) : String(val);
+
       const tr = document.createElement("tr");
+      const tdLeft = document.createElement("td");
+      const displayName =
+        propertyExplanations[fullKey]?.displayName || subKey;
+      tdLeft.textContent = displayName;
 
-      // Left column: property name + info icon
-      const tdKey = document.createElement("td");
-      tdKey.textContent = propertyExplanations[key]?.displayName || key;
-
-      // Add an info icon next to the property name
       const infoIcon = document.createElement("span");
       infoIcon.classList.add("info-icon");
       infoIcon.textContent = "ℹ️";
       infoIcon.addEventListener("click", () => {
-        const explanation = propertyExplanations[key]?.explanation ||
-          "No explanation available for this property.";
+        const explanation =
+          propertyExplanations[fullKey]?.explanation ||
+          `No explanation available for "${fullKey}".`;
         explanationText.textContent = explanation;
       });
-      tdKey.appendChild(infoIcon);
+      tdLeft.appendChild(infoIcon);
 
-      // Right column: raw value
-      const tdValue = document.createElement("td");
-      // If value is an object/array, show as string
-      tdValue.textContent = typeof value === "object"
-        ? JSON.stringify(value, null, 2)
-        : value;
+      const tdRight = document.createElement("td");
+      tdRight.textContent = valString;
 
-      tr.appendChild(tdKey);
-      tr.appendChild(tdValue);
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
       payloadTbody.appendChild(tr);
     });
+  }
+
+  /**
+   * buildProductRows(prKey, prValue, productIndex)
+   * Takes a product key (e.g. "pr1") and its value (the compressed string),
+   * then splits it into standard vs custom props. We then add rows for
+   * standard props first, then custom props.
+   * We also color the rows differently depending on productIndex (0 or 1, etc.)
+   */
+  function buildProductRows(prKey, prValue, productIndex) {
+    if (typeof prValue !== "string") {
+      // If not a string, show raw
+      const tr = document.createElement("tr");
+      tr.classList.add(`product-bg-${productIndex % 2}`); // alternate backgrounds
+      const tdLeft = document.createElement("td");
+      tdLeft.textContent = prKey;
+      const tdRight = document.createElement("td");
+      tdRight.textContent = JSON.stringify(prValue, null, 2);
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      payloadTbody.appendChild(tr);
+      return;
+    }
+
+    // Parse product string
+    const segments = prValue.split("~");
+    const standardProps = [];
+    const customProps = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const match = productParameters.find((pp) => seg.startsWith(pp.gtagKey));
+      if (match) {
+        // Standard property
+        const value = seg.slice(match.gtagKey.length);
+        standardProps.push({
+          gtagKey: match.gtagKey,
+          displayName: match.name, // "Item ID", "Item Brand", etc.
+          value
+        });
+      } else if (/^k[0-9A-R]/.test(seg)) {
+        // Custom property
+        const customKey = seg.replace(/^k[0-9A-R]/, "");
+        i++;
+        const valSegment = segments[i] || "";
+        const customValue = valSegment.replace(/^v[0-9A-R]/, "");
+        customProps.push({ key: customKey, value: customValue });
+      } else {
+        // Unknown segment
+        standardProps.push({
+          gtagKey: "unknown",
+          displayName: "Unknown Param",
+          value: seg
+        });
+      }
+    }
+
+    // 1) Render standard props in the order encountered
+    standardProps.forEach(({ gtagKey, displayName, value }) => {
+      const tr = document.createElement("tr");
+      tr.classList.add(`product-bg-${productIndex % 2}`); // alternate BG
+      const tdLeft = document.createElement("td");
+      tdLeft.textContent = displayName;
+
+      const infoIcon = document.createElement("span");
+      infoIcon.classList.add("info-icon");
+      infoIcon.textContent = "ℹ️";
+      infoIcon.addEventListener("click", () => {
+        // If we have a known explanation for this gtagKey, show it
+        const knownExp = productParamExplanations[gtagKey];
+        if (knownExp) {
+          explanationText.textContent = `${knownExp.displayName}: ${knownExp.explanation}`;
+        } else {
+          explanationText.textContent = `No explanation available for “${displayName}” (gtagKey: ${gtagKey}).`;
+        }
+      });
+      tdLeft.appendChild(infoIcon);
+
+      const tdRight = document.createElement("td");
+      tdRight.textContent = value;
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      payloadTbody.appendChild(tr);
+    });
+
+    // 2) Render custom props at the bottom
+    customProps.forEach(({ key, value }) => {
+      const tr = document.createElement("tr");
+      tr.classList.add(`product-bg-${productIndex % 2}`);
+      const tdLeft = document.createElement("td");
+      tdLeft.textContent = key;
+
+      const infoIcon = document.createElement("span");
+      infoIcon.classList.add("info-icon");
+      infoIcon.textContent = "ℹ️";
+      infoIcon.addEventListener("click", () => {
+        explanationText.textContent = `Custom property "${key}" with value "${value}".`;
+      });
+      tdLeft.appendChild(infoIcon);
+
+      const tdRight = document.createElement("td");
+      tdRight.textContent = value;
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      payloadTbody.appendChild(tr);
+    });
+  }
+
+  // Button / event listeners
+  parseBtn.addEventListener("click", parsePayload);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("gtagPayload");
+    if (saved) {
+      jsonInput.value = saved;
+      parsePayload();
+    }
+  });
+
+  jsonInput.addEventListener("input", () => {
+    try {
+      JSON.parse(jsonInput.value);
+      parsePayload();
+    } catch (e) {
+      // do nothing if invalid
+    }
   });
 </script>
 </body>
