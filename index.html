@@ -761,8 +761,7 @@
     const upNumberProps = [];
     const productKeys = [];
 
-    const sortedKeys = Object.keys(parsed).sort();
-    sortedKeys.forEach((key) => {
+    Object.keys(parsed).forEach((key) => {
       if (key.startsWith("ep.")) {
         epStringProps.push(key);
       } else if (key.startsWith("epn.")) {
