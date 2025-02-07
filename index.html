@@ -7,33 +7,48 @@
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
+      height: 100%; /* Let the body span entire browser height */
       font-family: sans-serif;
+      box-sizing: border-box;
     }
 
-    #main {
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+
+    /* A flex column wrapper that fills the viewport */
+    #pageWrapper {
       display: flex;
-      flex-direction: row;
-      height: calc(100% - 200px); /* Keep room at bottom for explanations */
+      flex-direction: column;
+      height: 100%;
     }
 
+    /* Header area (title, etc.) */
+    #header {
+      flex: 0 0 auto;
+      padding: 8px;
+    }
+
+    /* Main content area: split left (json input) and right (table) with flex row */
+    #main {
+      flex: 1 1 auto;
+      display: flex;
+      overflow: hidden; /* Prevent the entire page from scrolling */
+    }
+
+    /* Left: JSON input area */
     #jsonContainer {
       flex: 0 0 30%;
       border-right: 1px solid #ccc;
-      box-sizing: border-box;
       padding: 8px;
+      overflow-y: auto; /* Only this panel scrolls if content is too long */
     }
 
-    #jsonInput {
-      width: 100%;
-      height: 70vh; /* about 70% of the viewport height */
-      box-sizing: border-box;
-    }
-
+    /* Right: table container */
     #tableContainer {
-      flex: 1;
+      flex: 1; /* fill remaining width */
       padding: 8px;
-      box-sizing: border-box;
+      overflow-y: auto; /* only the table area scrolls here */
     }
 
     table {
@@ -45,6 +60,7 @@
       text-align: left;
       border: 1px solid #ccc;
       padding: 6px;
+      vertical-align: top;
     }
 
     .info-icon {
@@ -53,10 +69,13 @@
       color: #0066cc;
     }
 
+    /* Bottom explanation panel */
     #explanationArea {
+      flex: 0 0 auto;
       border-top: 1px solid #ccc;
       padding: 12px;
       min-height: 80px;
+      overflow-y: auto; /* If explanation text is large, scroll within this area */
     }
 
     #errorMsg {
@@ -66,36 +85,43 @@
   </style>
 </head>
 <body>
-<h1 style="margin: 8px;">Simple GTag Payload Viewer</h1>
-<div id="main">
-  <!-- Left side: JSON input -->
-  <div id="jsonContainer">
-    <h2>Paste GTag Payload JSON</h2>
-    <textarea id="jsonInput" placeholder="Paste your GTagPayload JSON here..."></textarea>
-    <br />
-    <button id="parseBtn">Parse JSON</button>
-    <div id="errorMsg"></div>
+<div id="pageWrapper">
+  <div id="header">
+    <h1>Simple GTag Payload Viewer</h1>
   </div>
 
-  <!-- Right side: table -->
-  <div id="tableContainer">
-    <h2>Parsed GTag Payload</h2>
-    <table>
-      <thead>
-      <tr>
-        <th>Key / Name</th>
-        <th>Value</th>
-      </tr>
-      </thead>
-      <tbody id="payloadTbody"></tbody>
-    </table>
-  </div>
-</div>
+  <div id="main">
+    <!-- Left side: JSON input -->
+    <div id="jsonContainer">
+      <h2>Paste GTag Payload JSON</h2>
+      <textarea id="jsonInput"
+                placeholder="Paste your GTagPayload JSON here..."
+                style="width: 100%; height: 300px;"></textarea>
+      <br />
+      <button id="parseBtn">Parse JSON</button>
+      <div id="errorMsg"></div>
+    </div>
 
-<!-- Bottom area: explanation panel -->
-<div id="explanationArea">
-  <h3>Selected Property Explanation</h3>
-  <div id="explanationText">No property selected yet.</div>
+    <!-- Right side: table -->
+    <div id="tableContainer">
+      <h2>Parsed GTag Payload</h2>
+      <table>
+        <thead>
+        <tr>
+          <th>Key / Name</th>
+          <th>Value</th>
+        </tr>
+        </thead>
+        <tbody id="payloadTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom area: explanation panel -->
+  <div id="explanationArea">
+    <h3>Selected Property Explanation</h3>
+    <div id="explanationText">No property selected yet.</div>
+  </div>
 </div>
 
 <script>
@@ -103,28 +129,402 @@
   // Key = property from GTagPayload. displayName is how it appears in the table,
   // explanation is shown in the bottom area when you click the info icon.
   const propertyExplanations = {
+    // -- Request parameters --
     v: {
       displayName: "Protocol version",
       explanation: "Protocol version used in the request, typically 2 for GA4."
     },
     tid: {
       displayName: "Tracking ID",
-      explanation: "Measurement ID / GA4 tracking ID, e.g., G-XXXX."
+      explanation: "Measurement ID (GA4). Example: G-XXXXXXX."
     },
     cid: {
       displayName: "Client ID",
-      explanation: "The client ID for this measurement request."
+      explanation: "An identifier for a unique user/client (from the GA4 _ga cookie)."
     },
     sr: {
       displayName: "Screen Resolution",
-      explanation: "Indicates the user’s screen resolution."
+      explanation: "The user's screen resolution (e.g., '1920x1080')."
     },
+    ur: {
+      displayName: "User Region",
+      explanation: "Format [COUNTRY_CODE]-[COUNTY_CODE], e.g., 'US-CA'."
+    },
+    ul: {
+      displayName: "User Language",
+      explanation: "Indicates the user's browser language, e.g. 'en-us'."
+    },
+    _s: {
+      displayName: "Hit counter",
+      explanation: "Represents the nth event in this session (incremented by GA)."
+    },
+    richsstsse: {
+      displayName: "Additional param (richsstsse)",
+      explanation:
+        "Empty in practice. Used for internal testing/SGTM enrichment (not widely documented)."
+    },
+    pscdl: {
+      displayName: "Privacy Sandbox Cookie Deprecation Label",
+      explanation:
+        "Indicates the request is part of the 'no 3rd-party cookie' test. Typical value: 'noapi'."
+    },
+
+    // -- Shared parameters --
+    dh: {
+      displayName: "Document Hostname",
+      explanation: "Hostname of the document, e.g., 'example.com'."
+    },
+    dl: {
+      displayName: "Document Location",
+      explanation: "Full URL path, e.g., '/collections/all'."
+    },
+    dt: {
+      displayName: "Document Title",
+      explanation: "Title of the current page (document.title)."
+    },
+    dr: {
+      displayName: "Document Referrer",
+      explanation: "Referrer URL (document.referrer)."
+    },
+    _dbg: {
+      displayName: "Debug Mode",
+      explanation:
+        "1 = debug events are visible in GA4 DebugView, but not processed. 0 = normal event."
+    },
+    npa: {
+      displayName: "Non-Personalized Ads",
+      explanation:
+        "1 = event data cannot be used for ads personalization. 0 = personalization allowed."
+    },
+    ir: {
+      displayName: "Ignore Referrer",
+      explanation:
+        "1 = referrer is ignored at processing. 0 = normal processing of referrer."
+    },
+    tt: {
+      displayName: "Traffic Type",
+      explanation:
+        "Set to 'internal' to mark all traffic as internal (leading to ignoring it)."
+    },
+    gcs: {
+      displayName: "Google Consent Status (V1)",
+      explanation:
+        "Format 'G1XY' where X=ad_storage (1 or 0), Y=analytics_storage (1 or 0). Example: 'G101'."
+    },
+    gcu: {
+      displayName: "Google Consent Update",
+      explanation: "1 if consent state was just updated, otherwise omitted."
+    },
+    gcd: {
+      displayName: "Google Consent V2 signal",
+      explanation:
+        "Consent-mode V2 string with 'm' or 'n' for each relevant usage (ad_storage, analytics, etc.)."
+    },
+    dma: {
+      displayName: "DMA (Digital Markets Act) flag",
+      explanation: "1 if user is from EEA (subject to Digital Markets Act), 0 otherwise."
+    },
+    dma_cps: {
+      displayName: "DMA Google Services Sharing",
+      explanation:
+        "String enumerating [s,y,p,h,a,m] for which services are allowed. Example: 'sypham'."
+    },
+
+    // -- Campaign parameters --
+    ci: {
+      displayName: "Campaign ID (utm_id)",
+      explanation: "Overrides URL-based campaign ID if present."
+    },
+    cm: {
+      displayName: "Campaign Medium (utm_medium)",
+      explanation: "Overrides URL-based campaign medium if present."
+    },
+    cs: {
+      displayName: "Campaign Source (utm_source)",
+      explanation: "Overrides URL-based campaign source if present."
+    },
+    cn: {
+      displayName: "Campaign Name (utm_campaign)",
+      explanation: "Overrides URL-based campaign name if present."
+    },
+    cc: {
+      displayName: "Campaign Content (utm_content)",
+      explanation: "Overrides URL-based campaign content if present."
+    },
+    ck: {
+      displayName: "Campaign Term (utm_term)",
+      explanation: "Overrides URL-based campaign term if present."
+    },
+    ccf: {
+      displayName: "Campaign Creative Format (utm_creative_format)",
+      explanation: "Overrides URL-based campaign creative format."
+    },
+    cmt: {
+      displayName: "Campaign Marketing Tactic (utm_marketing_tactic)",
+      explanation: "Overrides URL-based campaign marketing tactic."
+    },
+
+    // -- Client Hints --
+    uaa: {
+      displayName: "User Agent Architecture",
+      explanation: "CPU architecture (x86, etc.) gleaned from the UA client hints."
+    },
+    uab: {
+      displayName: "User Agent Bitness",
+      explanation:
+        "Bit size of CPU architecture: 32 or 64. Sourced from UA client hints."
+    },
+    uafvl: {
+      displayName: "User Agent Full Version List",
+      explanation:
+        "Comma or pipe-separated brand + version from UA client hints. E.g., 'Chrome;107.0.0.0|Not/A;Brand;99.0.0.0|Chromium;107'"
+    },
+    uamb: {
+      displayName: "User Agent Mobile",
+      explanation:
+        "1 if the UA is on a mobile device, 0 otherwise (from UA client hints)."
+    },
+    uam: {
+      displayName: "User Agent Model",
+      explanation: "Device model name from UA client hints (often empty on desktop)."
+    },
+    uap: {
+      displayName: "User Agent Platform",
+      explanation:
+        "OS or platform name from UA client hints (e.g., 'macOS', 'Android')."
+    },
+    uapv: {
+      displayName: "User Agent Platform Version",
+      explanation: "OS/platform version from UA client hints."
+    },
+    uaw: {
+      displayName: "User Agent WoW64",
+      explanation:
+        "1 if running 32-bit app on 64-bit Windows (WoW64). 0 if not (from UA hints)."
+    },
+
+    // -- Session / User related --
+    uid: {
+      displayName: "User ID",
+      explanation: "A user-provided ID that can tie multiple devices/sessions to the same user."
+    },
+    uip: {
+      displayName: "User IP",
+      explanation:
+        "IP address for the user (though GA4 may or may not honor this for geolocation)."
+    },
+    ua: {
+      displayName: "User Agent (fallback)",
+      explanation:
+        "Full user-agent string if UA client hints are not used or incomplete."
+    },
+    sid: {
+      displayName: "Session ID",
+      explanation: "Current session ID from GA4 session cookie ( _ga_... )."
+    },
+    sct: {
+      displayName: "Session count",
+      explanation:
+        "Number of sessions recorded for this user. Increments upon new sessions."
+    },
+    seg: {
+      displayName: "Session engaged",
+      explanation:
+        "1 if user is considered 'engaged' in this session (spent >10s or triggered conversion)."
+    },
+    _uc: {
+      displayName: "User country",
+      explanation: "A 2-letter country code for the user, e.g., 'US'."
+    },
+    _uip: {
+      displayName: "User IP (alias)",
+      explanation:
+        "Same as uip (sometimes the server sets both). GA might partially anonymize IP addresses."
+    },
+    _fv: {
+      displayName: "First visit",
+      explanation:
+        "1 if the user's first event is not a conversion, 2 if it's also a conversion."
+    },
+    _ss: {
+      displayName: "Session start",
+      explanation:
+        "1 if the session just started (non-conversion), 2 if the session start is also a conversion."
+    },
+    _fplc: {
+      displayName: "First party linker cookie",
+      explanation:
+        "Used for cross-domain tracking. If no cross-domain setup, default is '0'."
+    },
+    _nsi: {
+      displayName: "New session ID",
+      explanation:
+        "1 if a new session ID is created because GA4 had a session cookie but not a client ID."
+    },
+
+    // -- Enhanced User data (em) --
+    em: {
+      displayName: "Enhanced user data",
+      explanation:
+        "String like `tv.1~em.<hash>~pn.<hash>~fn0.<hash>...` containing hashed PII data (email, phone, name, address)."
+    },
+
+    // -- Event parameters --
     en: {
-      displayName: "Event Name",
-      explanation: "The GA4 event name, e.g. page_view, add_to_cart, etc."
+      displayName: "Event name",
+      explanation: "The name of the GA4 event, e.g., 'page_view', 'purchase'."
+    },
+    _et: {
+      displayName: "Engagement time (ms)",
+      explanation:
+        "Time in milliseconds that user was actively engaged since the prior event."
+    },
+    _c: {
+      displayName: "Is conversion",
+      explanation:
+        "1 if the event is labeled as a conversion in GA4 Admin, otherwise omitted."
+    },
+    _ee: {
+      displayName: "Is external event",
+      explanation: "1 if event was sent by a server or external tool."
+    },
+    "ep.transport_type": {
+      displayName: "Transport type",
+      explanation:
+        "Specifies the transport used to send hits (beacon, fetch, image, etc.)."
+    },
+    "ep.gclid": {
+      displayName: "Google Click ID",
+      explanation: "Parameter capturing GCLID for ad attribution."
+    },
+    "ep.sent_from": {
+      displayName: "Sent from",
+      explanation:
+        "Describes the origin (e.g., 'Littledata server'). Useful for debugging."
+    },
+    "ep.littledata_client_id": {
+      displayName: "Littledata client ID",
+      explanation:
+        "Custom parameter for identifying the server or library sending events."
+    },
+
+    //   "ep.xxx" or "epn.xxx" - dynamic custom event parameters
+    //   Use these keys to attach additional string/boolean (ep.) or numeric (epn.) parameters to the event.
+    //
+    //   Example: ep.promo_name => "SomePromotion"
+    //            epn.items_count => 3
+    //
+    //   You can also have pre-labeled keys like "ep.affiliation", "ep.transaction_id", etc.
+
+    "ep.affiliation": {
+      displayName: "Transaction affiliation",
+      explanation:
+        "String describing the store or affiliation for the purchase, e.g. 'Shopify Store'."
+    },
+    "ep.transaction_id": {
+      displayName: "Transaction ID",
+      explanation:
+        "Unique ID for the transaction. Typically used to group items under a single purchase."
+    },
+    "ep.app_name": {
+      displayName: "App name",
+      explanation: "Name of the app that triggered the event (if relevant)."
+    },
+    "ep.store_name": {
+      displayName: "Store name",
+      explanation:
+        "Name of the store (or brand) that triggered the event, e.g., 'MyShop'."
+    },
+    "ep.debug_mode": {
+      displayName: "Debug mode (event-level)",
+      explanation:
+        "A string 'true'/'false' indicating whether the event is flagged for GA debug."
+    },
+    "ep.shipping_tier": {
+      displayName: "Shipping tier",
+      explanation:
+        "Describes the shipping method or tier, e.g., 'Ground', 'Overnight'."
+    },
+    "ep.payment_type": {
+      displayName: "Payment type",
+      explanation:
+        "Describes the payment method used by the user, e.g., 'CreditCard', 'PayPal'."
+    },
+    "ep.error_type": {
+      displayName: "Error type",
+      explanation:
+        "Custom field to label error types, e.g., 'payment_failed', 'out_of_stock'."
+    },
+    "ep.subscription_status": {
+      displayName: "Subscription status",
+      explanation: "Custom field for subscription state, e.g., 'active' or 'canceled'."
+    },
+    "ep.order_interval_frequency": {
+      displayName: "Subscription order interval frequency",
+      explanation:
+        "How frequently the subscription recurs, e.g., '1', '2', '30' times a cycle."
+    },
+    "ep.order_interval_unit": {
+      displayName: "Subscription order interval unit",
+      explanation: "Unit of subscription frequency, e.g., 'month', 'day', 'week'."
+    },
+    "epn.app_id": {
+      displayName: "App ID",
+      explanation:
+        "Numeric ID of the app that triggered the event (if relevant)."
+    },
+    "epn.shipping": {
+      displayName: "Transaction shipping cost",
+      explanation: "Monetary value for shipping, e.g., 5.99."
+    },
+    "epn.tax": {
+      displayName: "Transaction tax",
+      explanation: "Monetary value for tax, e.g., 1.35."
+    },
+    "epn.value": {
+      displayName: "Transaction value",
+      explanation:
+        "Total monetary value of the event (revenue). E.g., 9.99 for a purchase."
+    },
+    "epn.subscription_id": {
+      displayName: "Subscription ID",
+      explanation:
+        "A numeric ID identifying the subscription (for recurring orders)."
+    },
+
+    // -- E-commerce product data --
+    // pr1, pr2, pr3... are dynamic properties describing product details.
+    // The value is a compressed string with standard keys like 'id', 'nm', 'br', 'ca' (item_id, item_name, item_brand, etc.),
+    // plus any custom properties (k0xxxx~v0yyyy).
+    // Example: pr1 => "id123~nmCoolShirt~brMyBrand~c299~k0myCustom~v0someValue"
+    pr1: {
+      displayName: "Product #1",
+      explanation:
+        "A compressed string representing the first product's details (id, name, brand, variant, price, quantity, etc.)."
+    },
+    // Similarly pr2, pr3, etc.
+
+    // -- Currency & promotions --
+    cu: {
+      displayName: "Currency",
+      explanation: "Three-letter currency code, e.g., 'USD', 'GBP'."
+    },
+    pi: {
+      displayName: "Promotion ID",
+      explanation:
+        "ID for promotion tracking (impression/click). Distinguishes multiple promotions."
+    },
+    pn: {
+      displayName: "Promotion name",
+      explanation: "Promotion name for impression/click tracking."
+    },
+    lo: {
+      displayName: "Location ID",
+      explanation:
+        "A Google Place ID for location-based hits, or similar external location identifier."
     }
-    // ...Add more as needed from the GTagPayload definitions...
   };
+
 
   const parseBtn = document.getElementById("parseBtn");
   const jsonInput = document.getElementById("jsonInput");
