@@ -7,7 +7,7 @@
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%; /* Let the body span the entire browser height */
+      height: 100%;
       font-family: sans-serif;
       box-sizing: border-box;
     }
@@ -16,32 +16,28 @@
       box-sizing: inherit;
     }
 
-    /* Page wrapper to allow full height flex */
     #pageWrapper {
       display: flex;
       flex-direction: column;
       height: 100%;
     }
 
-    /* Main area: two columns (left JSON and explanation, right table) */
     #main {
       flex: 1 1 auto;
       display: flex;
-      overflow: hidden; /* Keep everything within viewport, let children scroll */
+      overflow: hidden;
     }
 
-    /* Left side container (textarea + explanation) */
     #jsonContainer {
       flex: 0 0 30%;
       display: flex;
-      flex-direction: column; /* stack textarea + explanation vertically */
+      flex-direction: column;
       border-right: 1px solid #ccc;
       padding: 8px;
-      overflow-y: hidden; /* we handle scroll individually for child elements */
+      overflow-y: hidden;
       background: #fefefe;
     }
 
-    /* The top 80%: text area wrapper */
     #textareaWrapper {
       flex: 0 0 80%;
       display: flex;
@@ -56,7 +52,7 @@
     #jsonInput {
       flex: 1 1 auto;
       width: 100%;
-      resize: none; /* no manual resizing */
+      resize: none;
       border: 1px solid #ccc;
       border-radius: 4px;
       padding: 6px;
@@ -65,7 +61,6 @@
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
-    /* Light blue button styling */
     #parseBtn {
       margin-top: 8px;
       padding: 6px 10px;
@@ -87,7 +82,6 @@
       font-size: 14px;
     }
 
-    /* The bottom 20%: explanation area inside left container */
     #explanationPanel {
       flex: 0 0 20%;
       border-top: 1px solid #ccc;
@@ -98,7 +92,6 @@
 
     #explanationPanel h3 {
       margin: 0 0 4px;
-      font-size: 15px;
     }
 
     #explanationText {
@@ -106,9 +99,8 @@
       line-height: 1.3;
     }
 
-    /* Right side: table container */
     #tableContainer {
-      flex: 1; /* fill remaining space */
+      flex: 1;
       padding: 8px;
       overflow-y: auto;
       background: #fff;
@@ -118,7 +110,6 @@
       margin: 0 0 8px;
     }
 
-    /* Table styling */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -142,13 +133,12 @@
       background: #fafafa;
     }
 
-    /* We’ll alternate product backgrounds using a custom class */
     .product-bg-0 td {
-      background: #fafafa; /* Light gray for product #1, #3, #5... */
+      background: #fafafa;
     }
 
     .product-bg-1 td {
-      background: #f0f0f0; /* Slightly darker gray for product #2, #4, #6... */
+      background: #f0f0f0;
     }
 
     .info-icon {
@@ -159,13 +149,16 @@
     }
 
     @media (max-width: 1000px) {
-      #main {
-        flex-direction: column; /* stack everything */
-        height: auto; /* no fixed height constraints */
-        overflow: visible; /* let content grow */
+      body {
+        font-size: 20px;
       }
 
-      /* Let them become full width in stacked layout */
+      #main {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+      }
+
       #jsonContainer {
         flex: 0 0 20%;
         width: 100%;
@@ -192,15 +185,17 @@
         overflow-y: visible;
         margin-bottom: 20px;
       }
+
+      table th {
+        width: 50%
+      }
     }
   </style>
 </head>
 
 <body>
 <div id="pageWrapper">
-  <!-- Main content: 2-column layout -->
   <div id="main">
-    <!-- Left column -->
     <div id="jsonContainer">
       <div id="textareaWrapper">
         <h2>Paste GTag Payload JSON</h2>
@@ -211,14 +206,12 @@
         <div id="errorMsg"></div>
       </div>
 
-      <!-- Explanation panel (bottom 20%) -->
       <div id="explanationPanel">
         <h3>Selected Property Explanation</h3>
         <div id="explanationText">No property selected yet.</div>
       </div>
     </div>
 
-    <!-- Right column -->
     <div id="tableContainer">
       <h2>Parsed GTag Payload</h2>
       <table>
@@ -255,11 +248,8 @@
     { name: "Affiliation", type: "string", gtagKey: "af" }
   ];
 
-  // Basic dictionary with display names & explanations. Extend as needed.
-  // Key = property from GTagPayload. displayName is how it appears in the table,
-  // explanation is shown in the bottom area when you click the info icon.
+  // Display name / explanation dictionary
   const propertyExplanations = {
-    // -- Request parameters --
     v: {
       displayName: "Protocol version",
       explanation: "Protocol version used in the request, typically 2 for GA4."
@@ -298,8 +288,6 @@
       explanation:
         "Indicates the request is part of the 'no 3rd-party cookie' test. Typical value: 'noapi'."
     },
-
-    // -- Shared parameters --
     dh: {
       displayName: "Document Hostname",
       explanation: "Hostname of the document, e.g., 'example.com'."
@@ -359,8 +347,6 @@
       explanation:
         "String enumerating [s,y,p,h,a,m] for which services are allowed. Example: 'sypham'."
     },
-
-    // -- Campaign parameters --
     ci: {
       displayName: "Campaign ID (utm_id)",
       explanation: "Overrides URL-based campaign ID if present."
@@ -393,8 +379,6 @@
       displayName: "Campaign Marketing Tactic (utm_marketing_tactic)",
       explanation: "Overrides URL-based campaign marketing tactic."
     },
-
-    // -- Client Hints --
     uaa: {
       displayName: "User Agent Architecture",
       explanation: "CPU architecture (x86, etc.) gleaned from the UA client hints."
@@ -407,7 +391,7 @@
     uafvl: {
       displayName: "User Agent Full Version List",
       explanation:
-        "Comma or pipe-separated brand + version from UA client hints. E.g., 'Chrome;107.0.0.0|Not/A;Brand;99.0.0.0|Chromium;107'"
+        "Comma or pipe-separated brand + version from UA client hints."
     },
     uamb: {
       displayName: "User Agent Mobile",
@@ -430,10 +414,8 @@
     uaw: {
       displayName: "User Agent WoW64",
       explanation:
-        "1 if running 32-bit app on 64-bit Windows (WoW64). 0 if not (from UA hints)."
+        "1 if running 32-bit app on 64-bit Windows (WoW64). 0 if not."
     },
-
-    // -- Session / User related --
     uid: {
       displayName: "User ID",
       explanation: "A user-provided ID that can tie multiple devices/sessions to the same user."
@@ -460,7 +442,7 @@
     seg: {
       displayName: "Session engaged",
       explanation:
-        "1 if user is considered 'engaged' in this session (spent >10s or triggered conversion)."
+        "1 if user is considered 'engaged' in this session."
     },
     _uc: {
       displayName: "User country",
@@ -468,8 +450,7 @@
     },
     _uip: {
       displayName: "User IP (alias)",
-      explanation:
-        "Same as uip (sometimes the server sets both). GA might partially anonymize IP addresses."
+      explanation: "Same as uip. GA might partially anonymize IP addresses."
     },
     _fv: {
       displayName: "First visit",
@@ -479,27 +460,23 @@
     _ss: {
       displayName: "Session start",
       explanation:
-        "1 if the session just started (non-conversion), 2 if the session start is also a conversion."
+        "1 if the session just started (non-conversion), 2 if also a conversion."
     },
     _fplc: {
       displayName: "First party linker cookie",
       explanation:
-        "Used for cross-domain tracking. If no cross-domain setup, default is '0'."
+        "Used for cross-domain tracking. If no cross-domain setup, default '0'."
     },
     _nsi: {
       displayName: "New session ID",
       explanation:
-        "1 if a new session ID is created because GA4 had a session cookie but not a client ID."
+        "1 if a new session ID is created (GA4 had a session cookie but not a client ID)."
     },
-
-    // -- Enhanced User data (em) --
     em: {
       displayName: "Enhanced user data",
       explanation:
-        "String like `tv.1~em.<hash>~pn.<hash>~fn0.<hash>...` containing hashed PII data (email, phone, name, address)."
+        "A single string with hashed or plain user info, e.g., tv.1~em.xxx~pn.xxx~fn0.xxx, etc."
     },
-
-    // -- Event parameters --
     en: {
       displayName: "Event name",
       explanation: "The name of the GA4 event, e.g., 'page_view', 'purchase'."
@@ -507,12 +484,12 @@
     _et: {
       displayName: "Engagement time (ms)",
       explanation:
-        "Time in milliseconds that user was actively engaged since the prior event."
+        "Time in ms that user was actively engaged since the prior event."
     },
     _c: {
       displayName: "Is conversion",
       explanation:
-        "1 if the event is labeled as a conversion in GA4 Admin, otherwise omitted."
+        "1 if the event is labeled as a conversion in GA4 Admin."
     },
     _ee: {
       displayName: "Is external event",
@@ -529,79 +506,68 @@
     },
     "ep.sent_from": {
       displayName: "Sent from",
-      explanation:
-        "Describes the origin (e.g., 'Littledata server'). Useful for debugging."
+      explanation: "Describes the origin, e.g., 'Littledata server'."
     },
     "ep.littledata_client_id": {
       displayName: "Littledata client ID",
       explanation:
-        "Custom parameter for identifying the server or library sending events."
+        "Custom parameter for identifying the server/library sending events."
     },
-
-    //   "ep.xxx" or "epn.xxx" - dynamic custom event parameters
-    //   Use these keys to attach additional string/boolean (ep.) or numeric (epn.) parameters to the event.
-    //
-    //   Example: ep.promo_name => "SomePromotion"
-    //            epn.items_count => 3
-    //
-    //   You can also have pre-labeled keys like "ep.affiliation", "ep.transaction_id", etc.
-
     "ep.affiliation": {
       displayName: "Transaction affiliation",
       explanation:
-        "String describing the store or affiliation for the purchase, e.g. 'Shopify Store'."
+        "String describing the store or affiliation for the purchase."
     },
     "ep.transaction_id": {
       displayName: "Transaction ID",
       explanation:
-        "Unique ID for the transaction. Typically used to group items under a single purchase."
+        "Unique ID for the transaction. Groups multiple items under one purchase."
     },
     "ep.app_name": {
       displayName: "App name",
-      explanation: "Name of the app that triggered the event (if relevant)."
+      explanation: "Name of the app that triggered the event."
     },
     "ep.store_name": {
       displayName: "Store name",
       explanation:
-        "Name of the store (or brand) that triggered the event, e.g., 'MyShop'."
+        "Name of the store or brand that triggered the event."
     },
     "ep.debug_mode": {
       displayName: "Debug mode (event-level)",
       explanation:
-        "A string 'true'/'false' indicating whether the event is flagged for GA debug."
+        "String 'true'/'false' for whether the event is flagged for GA debug."
     },
     "ep.shipping_tier": {
       displayName: "Shipping tier",
-      explanation:
-        "Describes the shipping method or tier, e.g., 'Ground', 'Overnight'."
+      explanation: "Shipping method or tier, e.g., 'Ground', 'Overnight'."
     },
     "ep.payment_type": {
       displayName: "Payment type",
       explanation:
-        "Describes the payment method used by the user, e.g., 'CreditCard', 'PayPal'."
+        "Payment method used by the user, e.g., 'CreditCard', 'PayPal'."
     },
     "ep.error_type": {
       displayName: "Error type",
       explanation:
-        "Custom field to label error types, e.g., 'payment_failed', 'out_of_stock'."
+        "Custom field to label error types, e.g., 'payment_failed'."
     },
     "ep.subscription_status": {
       displayName: "Subscription status",
-      explanation: "Custom field for subscription state, e.g., 'active' or 'canceled'."
+      explanation: "Subscription state, e.g., 'active' or 'canceled'."
     },
     "ep.order_interval_frequency": {
       displayName: "Subscription order interval frequency",
       explanation:
-        "How frequently the subscription recurs, e.g., '1', '2', '30' times a cycle."
+        "How frequently the subscription recurs, e.g., '30' for monthly."
     },
     "ep.order_interval_unit": {
       displayName: "Subscription order interval unit",
-      explanation: "Unit of subscription frequency, e.g., 'month', 'day', 'week'."
+      explanation: "Unit of subscription frequency, e.g., 'month', 'day'."
     },
     "epn.app_id": {
       displayName: "App ID",
       explanation:
-        "Numeric ID of the app that triggered the event (if relevant)."
+        "Numeric ID of the app that triggered the event."
     },
     "epn.shipping": {
       displayName: "Transaction shipping cost",
@@ -614,35 +580,27 @@
     "epn.value": {
       displayName: "Transaction value",
       explanation:
-        "Total monetary value of the event (revenue). E.g., 9.99 for a purchase."
+        "Total monetary value of the event (revenue)."
     },
     "epn.subscription_id": {
       displayName: "Subscription ID",
       explanation:
         "A numeric ID identifying the subscription (for recurring orders)."
     },
-
-    // -- E-commerce product data --
-    // pr1, pr2, pr3... are dynamic properties describing product details.
-    // The value is a compressed string with standard keys like 'id', 'nm', 'br', 'ca' (item_id, item_name, item_brand, etc.),
-    // plus any custom properties (k0xxxx~v0yyyy).
-    // Example: pr1 => "id123~nmCoolShirt~brMyBrand~c299~k0myCustom~v0someValue"
     pr1: {
       displayName: "Product #1",
       explanation:
-        "A compressed string representing the first product's details (id, name, brand, variant, price, quantity, etc.)."
+        "Compressed string representing the first product's details."
     },
-    // Similarly pr2, pr3, etc.
-
-    // -- Currency & promotions --
+    // similarly pr2, pr3...
     cu: {
       displayName: "Currency",
-      explanation: "Three-letter currency code, e.g., 'USD', 'GBP'."
+      explanation: "Three-letter currency code, e.g. 'USD'."
     },
     pi: {
       displayName: "Promotion ID",
       explanation:
-        "ID for promotion tracking (impression/click). Distinguishes multiple promotions."
+        "ID for promotion tracking (impression/click)."
     },
     pn: {
       displayName: "Promotion name",
@@ -651,10 +609,10 @@
     lo: {
       displayName: "Location ID",
       explanation:
-        "A Google Place ID for location-based hits, or similar external location identifier."
+        "A Google Place ID or external location identifier."
     }
   };
-  // For standard product param tooltips, you could add something like:
+
   const productParamExplanations = {
     id: {
       displayName: "item_id",
@@ -674,19 +632,19 @@
     },
     c2: {
       displayName: "item_category2",
-      explanation: "Second-level category of the item."
+      explanation: "Second-level category."
     },
     c3: {
       displayName: "item_category3",
-      explanation: "Third-level category of the item."
+      explanation: "Third-level category."
     },
     c4: {
       displayName: "item_category4",
-      explanation: "Fourth-level category of the item."
+      explanation: "Fourth-level category."
     },
     c5: {
       displayName: "item_category5",
-      explanation: "Fifth-level category of the item."
+      explanation: "Fifth-level category."
     },
     va: {
       displayName: "item_variant",
@@ -726,6 +684,27 @@
     }
   };
 
+  // The known key definitions for enhanced user data:
+  // singleValueKeys => e.g. ~em.hashedEmail, ~pn.hashedPhone
+  // hashedArrayKeys => e.g. ~fn0.hashedFirstName, ~ln1.hashedLastName
+  // plainArrayKeys => e.g. ~ct0.city, ~rg0.region
+  const singleValueKeys = [
+    { label: "Email", prefix: "em" },
+    { label: "Phone", prefix: "pn" },
+  ];
+
+  const hashedArrayKeys = [
+    { label: "First Name", prefix: "fn" },
+    { label: "Last Name", prefix: "ln" },
+    { label: "Street", prefix: "sa" },
+  ];
+
+  const plainArrayKeys = [
+    { label: "City", prefix: "ct" },
+    { label: "Postal Code", prefix: "pc" },
+    { label: "Region", prefix: "rg" },
+    { label: "Country", prefix: "co" },
+  ];
 
   // HTML elements
   const parseBtn = document.getElementById("parseBtn");
@@ -735,11 +714,6 @@
   const explanationText = document.getElementById("explanationText");
   const explanationPanel = document.getElementById("explanationPanel");
 
-  /**
-   * parsePayload()
-   * Attempts to parse the JSON in the textarea, build the table, etc.
-   * If parse fails, show an error message. If success, update localStorage.
-   */
   function parsePayload() {
     // Clear old table/error
     errorMsg.textContent = "";
@@ -754,10 +728,9 @@
       return;
     }
 
-    // If valid, save to localStorage
+    // Save to localStorage if valid
     localStorage.setItem("gtagPayload", jsonInput.value);
 
-    // Organize keys into groups
     const normalProps = [];
     const epStringProps = [];
     const epNumberProps = [];
@@ -766,7 +739,10 @@
     const productKeys = [];
 
     Object.keys(parsed).forEach((key) => {
-      if (key.startsWith("ep.")) {
+      // We'll handle 'em' (enhanced user data) separately
+      if (key === "em") {
+        // do nothing here; we'll parse below
+      } else if (key.startsWith("ep.")) {
         epStringProps.push(key);
       } else if (key.startsWith("epn.")) {
         epNumberProps.push(key);
@@ -781,13 +757,22 @@
       }
     });
 
-    // Build the table
+    // Render normal top-level props
     normalProps.forEach(addNormalRow);
+
+    // Render grouped event/user props
     addGroupPropsRow("Event Properties (String)", epStringProps, 3);
     addGroupPropsRow("Event Properties (Numeric)", epNumberProps, 4);
     addGroupPropsRow("User Properties (String)", upStringProps, 3);
     addGroupPropsRow("User Properties (Numeric)", upNumberProps, 4);
 
+    // Render enhanced user data (em) if present
+    if (typeof parsed.em !== "undefined") {
+      addGroupTitleRow("Enhanced User Data", "product-bg-1");
+      buildEnhancedUserDataRows(parsed.em);
+    }
+
+    // Render product details if present
     if (productKeys.length) {
       addGroupTitleRow("Products", "product-bg-1");
       productKeys.forEach((prKey, i) => {
@@ -797,24 +782,22 @@
     }
   }
 
-  /** Renders a single normal row for top-level or non-grouped props */
   function addNormalRow(keyName) {
     const parsed = JSON.parse(jsonInput.value);
     const value = parsed[keyName];
     const tr = document.createElement("tr");
 
     const tdKey = document.createElement("td");
-    tdKey.textContent =
-      propertyExplanations[keyName]?.displayName || keyName;
+    tdKey.textContent = propertyExplanations[keyName]?.displayName || keyName;
 
     const infoIcon = document.createElement("span");
     infoIcon.classList.add("info-icon");
     infoIcon.textContent = "ℹ️";
     infoIcon.addEventListener("click", () => {
-      const explanation = propertyExplanations[keyName]?.explanation ||
+      const explanation =
+        propertyExplanations[keyName]?.explanation ||
         "No explanation available for this property.";
       explanationText.textContent = explanation;
-
       explanationPanel.scrollIntoView({ behavior: "smooth" });
     });
     tdKey.appendChild(infoIcon);
@@ -828,7 +811,6 @@
     payloadTbody.appendChild(tr);
   }
 
-  /** Adds a title row spanning both columns */
   function addGroupTitleRow(title, cls) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
@@ -840,10 +822,9 @@
     payloadTbody.appendChild(tr);
   }
 
-  /** For ep.* or up.* groups: Insert a title row, then each property row. */
   function addGroupPropsRow(title, keys, prefixLength) {
     if (!keys.length) return;
-    addGroupTitleRow(title);
+    addGroupTitleRow(title, "product-bg-1");
 
     const parsed = JSON.parse(jsonInput.value);
 
@@ -867,7 +848,6 @@
           propertyExplanations[fullKey]?.explanation ||
           `No explanation available for "${fullKey}".`;
         explanationText.textContent = explanation;
-
         explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
@@ -881,18 +861,11 @@
     });
   }
 
-  /**
-   * buildProductRows(prKey, prValue, productIndex)
-   * Takes a product key (e.g. "pr1") and its value (the compressed string),
-   * then splits it into standard vs custom props. We then add rows for
-   * standard props first, then custom props.
-   * We also color the rows differently depending on productIndex (0 or 1, etc.)
-   */
   function buildProductRows(prKey, prValue, productIndex) {
     if (typeof prValue !== "string") {
-      // If not a string, show raw
+      // If not a string, just show raw
       const tr = document.createElement("tr");
-      tr.classList.add(`product-bg-${productIndex % 2}`); // alternate backgrounds
+      tr.classList.add(`product-bg-${productIndex % 2}`);
       const tdLeft = document.createElement("td");
       tdLeft.textContent = prKey;
       const tdRight = document.createElement("td");
@@ -903,7 +876,6 @@
       return;
     }
 
-    // Parse product string
     const segments = prValue.split("~");
     const standardProps = [];
     const customProps = [];
@@ -916,7 +888,7 @@
         const value = seg.slice(match.gtagKey.length);
         standardProps.push({
           gtagKey: match.gtagKey,
-          displayName: match.name, // "Item ID", "Item Brand", etc.
+          displayName: match.name,
           value
         });
       } else if (/^k[0-9A-R]/.test(seg)) {
@@ -927,7 +899,7 @@
         const customValue = valSegment.replace(/^v[0-9A-R]/, "");
         customProps.push({ key: customKey, value: customValue });
       } else {
-        // Unknown segment
+        // Unknown / fallback
         standardProps.push({
           gtagKey: "unknown",
           displayName: "Unknown Param",
@@ -936,10 +908,10 @@
       }
     }
 
-    // 1) Render standard props in the order encountered
+    // Standard
     standardProps.forEach(({ gtagKey, displayName, value }) => {
       const tr = document.createElement("tr");
-      tr.classList.add(`product-bg-${productIndex % 2}`); // alternate BG
+      tr.classList.add(`product-bg-${productIndex % 2}`);
       const tdLeft = document.createElement("td");
       tdLeft.textContent = displayName;
 
@@ -947,14 +919,14 @@
       infoIcon.classList.add("info-icon");
       infoIcon.textContent = "ℹ️";
       infoIcon.addEventListener("click", () => {
-        // If we have a known explanation for this gtagKey, show it
         const knownExp = productParamExplanations[gtagKey];
         if (knownExp) {
-          explanationText.textContent = `${knownExp.displayName}: ${knownExp.explanation}`;
+          explanationText.textContent =
+            `${knownExp.displayName}: ${knownExp.explanation}`;
         } else {
-          explanationText.textContent = `No explanation available for “${displayName}” (gtagKey: ${gtagKey}).`;
+          explanationText.textContent =
+            `No explanation available for "${displayName}" (gtagKey: ${gtagKey}).`;
         }
-
         explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
@@ -966,7 +938,7 @@
       payloadTbody.appendChild(tr);
     });
 
-    // 2) Render custom props at the bottom
+    // Custom
     customProps.forEach(({ key, value }) => {
       const tr = document.createElement("tr");
       tr.classList.add(`product-bg-${productIndex % 2}`);
@@ -978,7 +950,6 @@
       infoIcon.textContent = "ℹ️";
       infoIcon.addEventListener("click", () => {
         explanationText.textContent = `Custom property "${key}" with value "${value}".`;
-
         explanationPanel.scrollIntoView({ behavior: "smooth" });
       });
       tdLeft.appendChild(infoIcon);
@@ -991,7 +962,99 @@
     });
   }
 
-  // Button / event listeners
+  /**
+   * buildEnhancedUserDataRows(emValue)
+   * Similar to buildProductRows but for parsing 'tv.1~em.xxxx~pn.xxxx~fn0.xxxx~ct0.xxxx', etc.
+   */
+  function buildEnhancedUserDataRows(emValue) {
+    if (typeof emValue !== "string") {
+      // If not a string, just display raw
+      const tr = document.createElement("tr");
+      const tdLeft = document.createElement("td");
+      tdLeft.textContent = "em";
+      const tdRight = document.createElement("td");
+      tdRight.textContent = JSON.stringify(emValue, null, 2);
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      payloadTbody.appendChild(tr);
+      return;
+    }
+
+    const segments = emValue.split("~");
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+
+      // If it's the version chunk like 'tv.1', we can label it or skip it
+      if (seg.startsWith("tv.")) {
+        addEmRow("Tracking version", seg.replace("tv.", ""), seg);
+        continue;
+      }
+
+      // Single-value hashed keys =>  e.g. em.hash, pn.hash
+      const singleMatch = singleValueKeys.find((kv) => seg.startsWith(kv.prefix + "."));
+      if (singleMatch) {
+        const hashedValue = seg.replace(singleMatch.prefix + ".", "");
+        addEmRow(singleMatch.label, hashedValue, seg);
+        continue;
+      }
+
+      // Hashed array keys => e.g. fn0.hash, ln1.hash
+      const hashedArrMatch = hashedArrayKeys.find((kv) =>
+        new RegExp(`^${kv.prefix}\\d+\\.`).test(seg)
+      );
+      if (hashedArrMatch) {
+        // e.g. seg = 'fn0.someHash', parse out 0 as index
+        const [prefixIndex, hashedVal] = seg.split(".");
+        // prefixIndex might be 'fn0' => 'fn' + '0'
+        const arrayIndex = prefixIndex.replace(hashedArrMatch.prefix, "");
+        addEmRow(`${hashedArrMatch.label} #${arrayIndex}`, hashedVal, seg);
+        continue;
+      }
+
+      // Plain array keys => e.g. ct0.miami => city #0 => 'miami'
+      const plainArrMatch = plainArrayKeys.find((kv) =>
+        new RegExp(`^${kv.prefix}\\d+\\.`).test(seg)
+      );
+      if (plainArrMatch) {
+        const [prefixIndex, val] = seg.split(".");
+        const arrayIndex = prefixIndex.replace(plainArrMatch.prefix, "");
+        // decode URI if any
+        const decodedVal = decodeURIComponent(val);
+        addEmRow(`${plainArrMatch.label} #${arrayIndex}`, decodedVal, seg);
+        continue;
+      }
+
+      // If none of the above matched, treat as unknown
+      addEmRow("Unknown key", seg, seg);
+    }
+
+    /**
+     * Helper to add a row to the table specifically for EM data
+     */
+    function addEmRow(label, displayVal, rawSeg) {
+      const tr = document.createElement("tr");
+      const tdLeft = document.createElement("td");
+      tdLeft.textContent = label;
+
+      const infoIcon = document.createElement("span");
+      infoIcon.classList.add("info-icon");
+      infoIcon.textContent = "ℹ️";
+      infoIcon.addEventListener("click", () => {
+        explanationText.textContent = `Enhanced user data segment: "${rawSeg}"`;
+        explanationPanel.scrollIntoView({ behavior: "smooth" });
+      });
+      tdLeft.appendChild(infoIcon);
+
+      const tdRight = document.createElement("td");
+      tdRight.textContent = displayVal;
+
+      tr.appendChild(tdLeft);
+      tr.appendChild(tdRight);
+      payloadTbody.appendChild(tr);
+    }
+  }
+
+  // Event listeners
   parseBtn.addEventListener("click", parsePayload);
 
   document.addEventListener("DOMContentLoaded", () => {
