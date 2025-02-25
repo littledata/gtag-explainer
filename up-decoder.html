@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>GTag Payload Viewer</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: sans-serif;
+      box-sizing: border-box;
+    }
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+
+    #pageWrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    #main {
+      flex: 1 1 auto;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Left column */
+    #jsonContainer {
+      flex: 0 0 30%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #ccc;
+      background: #fefefe;
+      padding: 8px;
+    }
+    #textareaWrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto; /* fill the column */
+    }
+    #textareaWrapper > h2 {
+      margin: 0 0 8px;
+    }
+    #jsonInput {
+      flex: 1 1 auto;
+      width: 100%;
+      resize: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    #parseBtn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #85c5f9;
+      cursor: pointer;
+      background: #ebf5ff;
+      color: #0366d6;
+    }
+    #parseBtn:hover {
+      background: #dceeff;
+    }
+
+    /* Error message is hidden by default */
+    #errorMsg {
+      display: none;
+      color: red;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    /* Right column */
+    #tableContainer {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      background: #fefefe;
+    }
+    #parsedHeader {
+      display: flex;
+      align-items: center;
+      margin: 0 0 8px;
+    }
+    #parsedHeader > h2 {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+    #decodedJsonWrapper {
+      flex: 1 1 auto;
+      display: flex;
+      position: relative; /* needed for absolute-positioned button */
+    }
+    #decodedJson {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+    #copyBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #85c5f9;
+      cursor: pointer;
+      background: #ebf5ff;
+      color: #0366d6;
+    }
+    #copyBtn:hover {
+      background: #dceeff;
+    }
+  </style>
+</head>
+<body>
+<div id="pageWrapper">
+  <div id="main">
+
+    <!-- LEFT COLUMN -->
+    <div id="jsonContainer">
+      <div id="textareaWrapper">
+        <h2>Paste encoded User Properties</h2>
+        <textarea
+          id="jsonInput"
+          placeholder="Paste your encoded User Properties..."></textarea>
+        <button id="parseBtn">Parse</button>
+        <div id="errorMsg"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div id="tableContainer">
+      <div id="parsedHeader">
+        <h2>Parsed user properties</h2>
+      </div>
+      <div id="decodedJsonWrapper">
+        <button id="copyBtn">📋</button>
+        <textarea id="decodedJson" disabled></textarea>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /*********************************************************
+   * Local storage retrieval
+   *********************************************************/
+  const storedData = localStorage.getItem('encodedData');
+  if (storedData) {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('jsonInput').value = storedData;
+      parseEncodedData(); // automatically parse upon load
+    });
+  }
+
+  /*********************************************************
+   * Base91 decode
+   *********************************************************/
+  const lookup = [];
+  const revLookup = [];
+  const code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~"';
+  for (let i = 0, len = code.length; i < len; ++i) {
+    lookup[i] = code[i];
+    revLookup[code.charCodeAt(i)] = i;
+  }
+
+  function decode(b91) {
+    const output = [];
+    let queue = 0,
+      numbits = 0,
+      value = -1;
+
+    for (let i = 0, len = b91.length; i < len; i++) {
+      const d = revLookup[b91.charCodeAt(i)];
+      if (d === undefined) continue;
+      if (value === -1) {
+        value = d;
+      } else {
+        value += d * 91;
+        queue |= value << numbits;
+        numbits += (value & 8191) > 88 ? 13 : 14;
+        do {
+          output.push(queue);
+          queue >>= 8;
+          numbits -= 8;
+        } while (numbits > 7);
+        value = -1;
+      }
+    }
+    if (value !== -1) {
+      output.push(queue | (value << numbits));
+    }
+    return new Uint8Array(output);
+  }
+
+  /*********************************************************
+   * Decompress using deflate-raw
+   *********************************************************/
+  async function decompress(encoded) {
+    const scopeId = Math.floor(Math.random() * 1000);
+    console.time(`decompress-${scopeId}`);
+
+    // 1) Decode Base91 to Uint8Array
+    const compressedBytes = decode(encoded);
+
+    // 2) Decompress using deflate-raw
+    const decompressedStream = new Blob([compressedBytes])
+      .stream()
+      .pipeThrough(new DecompressionStream('deflate-raw'));
+    const decompressedText = await new Response(decompressedStream).text();
+
+    console.timeEnd(`decompress-${scopeId}`);
+
+    // Attempt to parse as JSON
+    try {
+      return JSON.parse(decompressedText);
+    } catch {
+      // Not valid JSON, just return raw text
+      return decompressedText;
+    }
+  }
+
+  /*********************************************************
+   * Automatic parse logic
+   *********************************************************/
+  const jsonInputEl = document.getElementById('jsonInput');
+  const errorMsgEl = document.getElementById('errorMsg');
+  const decodedJsonEl = document.getElementById('decodedJson');
+
+  // Common parse logic
+  async function parseEncodedData() {
+    const jsonInput = jsonInputEl.value.trim();
+    errorMsgEl.style.display = 'none'; // hide error by default
+
+    // If input is empty, clear everything
+    if (!jsonInput) {
+      decodedJsonEl.value = '';
+      return;
+    }
+
+    try {
+      const result = await decompress(jsonInput);
+      decodedJsonEl.value = JSON.stringify(result, null, 2);
+
+      // Save valid input to localStorage
+      localStorage.setItem('encodedData', jsonInput);
+    } catch (err) {
+      console.error(err);
+      decodedJsonEl.value = '';
+      errorMsgEl.textContent = 'The provided data is malformed or cannot be parsed.';
+      errorMsgEl.style.display = 'block';
+    }
+  }
+
+  // Listen for manual parse button
+  const parseBtn = document.getElementById('parseBtn');
+  parseBtn.addEventListener('click', parseEncodedData);
+
+  // Listen for changes to the input (auto-parse)
+  jsonInputEl.addEventListener('input', parseEncodedData);
+
+  /*********************************************************
+   * Copy button logic
+   *********************************************************/
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(decodedJsonEl.value).catch(err => {
+      console.error(err);
+      errorMsgEl.textContent = 'Failed to copy text.';
+      errorMsgEl.style.display = 'block';
+    });
+  };
+</script>
+</body>
+</html>
